@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookie Incremental avec Bâtiments, Niveaux, Boosts et Durabilité</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* Import des polices */
+        @import url('https://fonts.googleapis.com/css2?family=Sixtyfour+Convergence&display=swap');
+
+        /* Polices par défaut pour les éléments de texte */
+        p,
+        span,
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        button,
+        div {
+            font-family: "Sixtyfour Convergence", sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 400;
+            font-style: normal;
+            font-variation-settings:
+                "BLED" 0,
+                "SCAN" 0,
+                "XELA" 0,
+                "YELA" 0;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+        /* Boutons d'achat et d'amélioration */
+        #buy-factory,
+        #buy-mine,
+        #buy-laboratory,
+        #upgrade-click,
+        #activate-hyper-boost {
+            background-color: white !important;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+
+        button {
+            color: white;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* Corps du document */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            position: relative;
+            background-color: blue;
+        }
+
+        /* En-tête de la page */
+        .container-header {
+            position: fixed;
+            width: 100%;
+            height: 110px;
+            background-color: blue;
+            border-bottom: 2px solid white;
+            z-index: 9999;
+            top: 0;
+        }
+
+        .couronne-picture {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            width: 35px;
+            rotate: -15deg;
+        }
+
+        h1 {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            color: white;
+        }
+
+        /* Animation pour les burgers volants */
+        @keyframes flyUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+        }
+
+        /* Effets de feux d'artifice */
+        .firework {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            opacity: 0;
+            animation: fireworkExplosion 0.8s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes fireworkExplosion {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(5);
+                opacity: 0;
+            }
+        }
+
+        /* Burger volant */
+        .fly-burger {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            background-image: url('img/burger.png');
+            background-size: cover;
+            animation: flyUp 1s forwards;
+            pointer-events: none;
+        }
+
+        /* Conteneur principal */
+        .container {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        /* Compteur de cookies */
+        .cookie-counter {
+            margin-top: 150px;
+            color: white;
+            font-weight: 700;
+            font-size: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Magasin */
+        .shop {
+            position: fixed;
+            top: 10px;
+            right: -400px;
+            margin-top: 150px;
+            max-width: 400px;
+            background-color: #263cdf;
+            padding: 10px;
+            min-width: 400px;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            row-gap: 15px;
+            transition: right 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .shop.open {
+            right: 10px;
+            opacity: 1;
+        }
+
+        .arrow-shop {
+            position: fixed;
+            top: 160px;
+            right: 30px;
+            transition: right 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 10000;
+            width: 50px;
+            rotate: 180deg;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .arrow-shop.open {
+            right: 440px;
+        }
+
+        #arrow-shop-icon {
+            width: 30px;
+            height: 30px;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .arrow-shop.open #arrow-shop-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Statistiques */
+        .stats {
+            position: fixed;
+            top: 10px;
+            left: -400px;
+            margin-top: 150px;
+            max-width: 400px;
+            z-index: 999;
+            background-color: white;
+            padding: 10px;
+            min-width: 400px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            flex-direction: column;
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            text-align: left;
+            row-gap: 15px;
+            transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .stats.open {
+            left: 10px;
+            opacity: 1;
+        }
+
+        .arrow-stats {
+            position: fixed;
+            top: 160px;
+            left: 30px;
+            transition: left 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 9999;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .arrow-stats.open {
+            left: 440px;
+        }
+
+        #arrow-stats-icon {
+            width: 30px;
+            height: 30px;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        .arrow-stats.open #arrow-stats-icon {
+            transform: rotate(180deg);
+        }
+
+        /* Colonnes des bâtiments */
+        .building-columns {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            width: 100%;
+            padding: 10px;
+            column-gap: 35px;
+        }
+
+        .column {
+            flex: 1;
+            min-height: 100px;
+            padding: 10px;
+            box-sizing: border-box;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+
+        .column h3 {
+            margin-bottom: 10px;
+        }
+
+        .factory-item,
+        .mine-item,
+        .laboratory-item {
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .fit-picture {
+            max-width: 353px;
+            width: 100%;
+            margin: auto;
+        }
+
+        .fit-picture:hover {
+            cursor: pointer;
+        }
+
+        /* Interactions avec les bâtiments */
+        .item {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .cookie-consent-modal {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10000;
+        }
+
+        .info-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            row-gap: 10px;
+            text-align: left;
+            margin: 35px 0;
+        }
+
+        .info-container p {
+            margin: 0;
+        }
+
+        .item p {
+            margin: 5px;
+        }
+
+        #cookie-btn {
+            background-color: #ffcc00;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+        }
+
+        #buy-factory,
+        #buy-mine,
+        #buy-laboratory,
+        #upgrade-click,
+        #activate-hyper-boost {
+            background-color: #ff6600;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+
+        /* Debug et messages */
+        #debug-buttons {
+            margin-top: 20px;
+        }
+
+        .zone-update {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .zone-update-cost, .zone-repair-cost {
+            display: flex;
+            align-items: flex-end;
+            column-gap: 10px;
+            cursor: pointer;
+        }
+
+        .update-picto {
+            transform: rotate(270deg);
+        }
+
+        .repair {
+            background-color: #efefef;
+            color: white;
+            border: 1px solid black;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+            outline: none;
+            width: 100%;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background-color: #eaeaea;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 100%;
+            transition: width 0.1s linear, background-color 0.5s ease;
+        }
+
+        .time-remaining {
+            margin-left: 10px;
+            font-size: 12px;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        #music-control-icon {
+            position: fixed;
+            top: 30px;
+            right: 20px;
+            z-index: 9999;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .music-muted {
+            filter: grayscale(100%);
+            position: relative;
+        }
+
+        .music-muted::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: red;
+            transform: rotate(45deg);
+        }
+
+        @keyframes fall {
+            0% {
+                top: -150px;
+                opacity: 1;
+            }
+            100% {
+                top: 100vh;
+                opacity: 0;
+            }
+        }
+
+        @keyframes zigzagFall {
+    0% {
+        top: -150px;
+        left: calc(50% - 64px);
+        transform: translateX(0);
+        opacity: 1;
+    }
+    15% {
+        transform: translateX(-100px);
+    }
+    30% {
+        transform: translateX(100px);
+    }
+    45% {
+        transform: translateX(-100px);
+    }
+    60% {
+        transform: translateX(100px);
+    }
+    75% {
+        transform: translateX(-100px);
+    }
+    90% {
+        transform: translateX(100px);
+    }
+    100% {
+        top: 100vh;
+        transform: translateX(0);
+        opacity: 0;
+    }
+}
+
+.falling-burger {
+    position: absolute;
+    width: 128px;
+    height: 128px;
+    background-image: url('img/burger.png');
+    background-size: cover;
+    cursor: pointer;
+    animation: zigzagFall 10s linear forwards;
+}
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0;
+            }
+
+            .title-stats,
+            .title-shop {
+                font-size: 20px;
+            }
+
+            h1 {
+                position: fixed;
+                top: 15px;
+                left: 25px;
+                color: white;
+            }
+
+            .cookie-counter {
+                font-size: 22px;
+                margin-top: 175px;
+            }
+
+            #cookie-count {
+                max-width: 300px;
+                margin: auto;
+                display: block;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                hyphens: auto;
+            }
+
+            .zone-update {
+                flex-direction: column;
+                row-gap: 15px;
+            }
+
+            .zone-update-cost img, .zone-repair-cost img {
+                width: 16px;
+            }
+
+            .zone-update-cost span, .zone-repair-cost span {
+                font-size: 10px;
+            }
+
+            .zone-repair-cost {
+                justify-content: space-between;
+                flex-direction: row-reverse;
+            }
+
+            .couronne-picture {
+                position: fixed;
+                top: 3px;
+                left: 90px;
+                width: 35px;
+                rotate: -15deg;
+            }
+
+            .stats,
+            .shop {
+                min-width: 70%;
+                max-width: 70%;
+            }
+
+            .shop {
+                row-gap: 0px;
+            }
+
+            .stats .item p {
+                line-height: 20px;
+            }
+
+            .open p,
+            .open button,
+            .open span {
+                font-size: 11px;
+            }
+
+            .arrow-stats {
+                left: 10px;
+            }
+
+            .arrow-shop {
+                right: 10px;
+            }
+
+            .arrow-shop.open {
+                right: 65%;
+            }
+
+            .arrow-stats.open {
+                left: 65%;
+            }
+
+            #factories .column h3 {
+                font-size: 10px;
+            }
+
+            .building-columns {
+                display: flex;
+                justify-content: space-around;
+                margin-top: 20px;
+                width: 95%;
+                padding: 10px;
+                column-gap: 3px;
+            }
+
+            .column {
+                max-width: 33%;
+                min-width: 33%;
+            }
+
+            .column h3 {
+                font-size: 8px !important;
+            }
+
+            .factory-item p,
+            .mine-item p,
+            .laboratory-item p {
+                font-size: 9px;
+                word-break: break-word;
+                line-height: 15px;
+            }
+
+            .info-container {
+                margin: 15px 0;
+            }
+
+            .column {
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <audio id="background-music" loop>
+        <source src="audio/music-retro.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="purchase-sound">
+        <source src="audio/game.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="click-upgrade-sound">
+        <source src="audio/correct.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="upgrade-sound">
+        <source src="audio/upgrade.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="repair-sound">
+        <source src="audio/repair.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <audio id="bonus-sound">
+        <source src="audio/bonus.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <div class="container">
+        <div class="container-header">
+            <img class="couronne-picture" src="img/couronne.png" alt="Couronne" />
+            <h1>Burger Generator</h1>
+        </div>
+        <div class="cookie-counter">
+            <p><span id="cookie-count">0</span></p>
+            <img class="fit-picture" src="img/burger.png" alt="Burger Image" id="main-burger-image" />
+            <button id="cookie-btn">Cliquez pour un burger</button>
+        </div>
+
+        <div class="arrow-shop">
+            <img src="img/game.png" alt="Toggle Shop" id="arrow-shop-icon" />
+        </div>
+
+        <div class="shop">
+            <h2 class="title-shop">Boutique</h2>
+            <div class="item">
+                <p>Améliorer le clic</p>
+                <p>Coût : <span id="click-upgrade-cost">50</span></p>
+                <button id="upgrade-click">Améliorer</button>
+            </div>
+            <div class="item">
+                <p>Usine à hamburgers</p>
+                <p>Coût : <span id="factory-cost-display"></span> hamburgers</p>
+                <button id="buy-factory">Acheter Usine</button>
+            </div>
+            <div class="item">
+                <p>Mine de hamburgers</p>
+                <p>Coût : <span id="mine-cost-display"></span> hamburgers</p>
+                <button id="buy-mine">Acheter Mine</button>
+            </div>
+            <div class="item">
+                <p>Laboratoire de hamburgers</p>
+                <p>Coût : <span id="laboratory-cost-display"></span> hamburgers</p>
+                <button id="buy-laboratory">Acheter Laboratoire</button>
+            </div>
+            <div class="item">
+                <p>Hyper Boost</p>
+                <p>Coût : <span id="hyper-boost-cost">10000000</span> hamburgers</p>
+                <button id="activate-hyper-boost" disabled>Hyper Boost</button>
+            </div>
+        </div>
+
+        <div class="arrow-stats">
+            <img src="img/game.png" alt="Toggle Stats" id="arrow-stats-icon" />
+        </div>
+
+        <div class="stats">
+            <h2 class="title-stats">Statistiques</h2>
+            <div class="item">
+                <p>Nombre de clics : <span id="click-count">0</span></p>
+            </div>
+            <div class="item">
+                <p>Nombre total de hamburgers : <span id="total-burgers">0</span></p>
+            </div>
+            <div class="item">
+                <p>Production des usines/s : <span id="factory-production-per-second">0</span></p>
+            </div>
+            <div class="item">
+                <p>Production des mines/s : <span id="mine-production-per-second">0</span></p>
+            </div>
+            <div class="item">
+                <p>Hamburgers par clic : <span id="cookie-per-click">1</span></p>
+            </div>
+        </div>
+
+        <p id="boost-timer"></p>
+
+        <div id="debug-buttons">
+            <button id="debug-add-hamburgers">Ajouter 1000 hamburgers</button>
+            <button id="debug-add-factory">Ajouter une usine (debug)</button>
+        </div>
+
+        <img src="img/music.png" alt="Music Icon" id="music-control-icon" class="music-muted">
+
+        <h2>Vos Bâtiments</h2>
+
+        <div id="factories" class="building-columns">
+            <div id="factory-column" class="column">
+                <h3>Usines</h3>
+                <!-- Les usines seront ajoutées ici -->
+            </div>
+            <div id="mine-column" class="column">
+                <h3>Mines</h3>
+                <!-- Les mines seront ajoutées ici -->
+            </div>
+            <div id="laboratory-column" class="column">
+                <h3>Laboratoires</h3>
+                <!-- Les laboratoires seront ajoutés ici -->
+            </div>
+        </div>
+
+        <div id="cookie-consent-modal" class="cookie-consent-modal" style="display: none;">
+            <p>Voulez-vous accepter les cookies pour enregistrer votre progression ?</p>
+            <button id="accept-cookies">Accepter</button>
+            <button id="decline-cookies">Refuser</button>
+        </div>
+    </div>
+
+    <script>
+        // Variables de base
+        let hamburgers = 0;
+        let cookiePerClick = 1; // hamburgers par clic
+        let clickUpgradeCost = 50; // Coût pour améliorer le clic
+        let factoryCost = 100;
+        let mineCost = 4000; // Coût initial des mines
+        let laboratoryCost = 10000; // Coût initial des laboratoires
+        let baseFactoryProduction = 2; // Production de base par usine
+        let baseMineProduction = 10; // Production de base par mine
+        let factories = [];
+        let mines = [];
+        let laboratories = [];
+        let hyperBoostCost = 10000; // Cost to activate the Hyper Boost
+        let hyperBoostMultiplier = 10; // Multiplier for production
+        let hyperBoostDuration = 60000; // 1 minute in milliseconds
+        let isHyperBoostActive = false;
+        let boostEndTime = 0; // Fin du Hyper Boost
+        let totalBurgersProduced = 0;
+        let clickCount = 0;
+        let totalFactoryProductionPerSecond = 0;
+        let totalMineProductionPerSecond = 0;
+        let clickUpgradeLevel = 0; // Niveau d'amélioration du clic
+        let buildingIdCounter = 0; // Compteur pour les identifiants uniques des bâtiments
+        let cookiesAccepted = false;
+
+        // Sélectionner les éléments du DOM
+        const cookieCountElement = document.getElementById('cookie-count');
+        const cookiePerClickElement = document.getElementById('cookie-per-click');
+        const clickUpgradeCostElement = document.getElementById('click-upgrade-cost');
+        const cookieBtn = document.getElementById('cookie-btn');
+        const upgradeClickBtn = document.getElementById('upgrade-click');
+        const buyFactoryBtn = document.getElementById('buy-factory');
+        const buyMineBtn = document.getElementById('buy-mine');
+        const buyLaboratoryBtn = document.getElementById('buy-laboratory');
+        const factoriesContainer = document.getElementById('factories');
+        const hyperBoostBtn = document.getElementById('activate-hyper-boost');
+        const hyperBoostCostElement = document.getElementById('hyper-boost-cost');
+        const boostTimerElement = document.getElementById('boost-timer');
+        const mainBurgerImage = document.getElementById('main-burger-image');
+        const musicControlIcon = document.getElementById('music-control-icon');
+        const backgroundMusic = document.getElementById('background-music');
+        const purchaseSound = document.getElementById('purchase-sound');
+        const clickUpgradeSound = document.getElementById('click-upgrade-sound');
+        const upgradeSound = document.getElementById('upgrade-sound');
+        const repairSound = document.getElementById('repair-sound');
+        const bonusSound = document.getElementById('bonus-sound');
+        const arrowStats = document.querySelector('.arrow-stats');
+        const statsPanel = document.querySelector('.stats');
+        const arrowShop = document.querySelector('.arrow-shop');
+        const shopPanel = document.querySelector('.shop');
+        const factoryCostDisplay = document.getElementById('factory-cost-display');
+        const mineCostDisplay = document.getElementById('mine-cost-display');
+        const laboratoryCostDisplay = document.getElementById('laboratory-cost-display');
+        const durabilityReductionPerSecond = 100 / 300; // Reduction par seconde
+
+        // Set volume levels
+        backgroundMusic.volume = 0.4; // 60% volume
+        purchaseSound.volume = 1.0;
+        clickUpgradeSound.volume = 1.0;
+        upgradeSound.volume = 1.0;
+        repairSound.volume = 1.0;
+        bonusSound.volume = 1.0;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const consentModal = document.getElementById('cookie-consent-modal');
+            const acceptCookiesButton = document.getElementById('accept-cookies');
+            const declineCookiesButton = document.getElementById('decline-cookies');
+
+            // Vérifier si l'utilisateur a déjà donné son consentement
+            const cookiesAccepted = localStorage.getItem('cookiesAccepted');
+
+            if (cookiesAccepted === 'true') {
+                // Masquer la popin et charger l'état du jeu si les cookies ont été acceptés
+                consentModal.style.display = 'none';
+                loadGameState();
+            } else if (cookiesAccepted === 'false') {
+                // Masquer la popin si l'utilisateur a déjà refusé les cookies
+                consentModal.style.display = 'none';
+            } else {
+                // Afficher la popin si aucun consentement n'a encore été donné
+                consentModal.style.display = 'block';
+            }
+
+            // Gestion des boutons Accepter et Refuser
+            acceptCookiesButton.addEventListener('click', () => {
+                localStorage.setItem('cookiesAccepted', 'true'); // Enregistrer le consentement
+                consentModal.style.display = 'none'; // Masquer la popin
+                loadGameState(); // Charger l'état du jeu si accepté
+            });
+
+            declineCookiesButton.addEventListener('click', () => {
+                localStorage.setItem('cookiesAccepted', 'false'); // Enregistrer le refus
+                consentModal.style.display = 'none'; // Masquer la popin
+                // Ne pas charger l'état du jeu
+            });
+        });
+
+        function askForCookiesConsent() {
+            const consentModal = document.getElementById('cookie-consent-modal');
+            const cookiesAccepted = localStorage.getItem('cookiesAccepted');
+
+            if (cookiesAccepted === null) {
+                consentModal.style.display = 'block'; // Afficher la popup
+            } else {
+                consentModal.style.display = 'none'; // Masquer la popup si déjà accepté/refusé
+            }
+
+            // Ajouter des écouteurs pour les boutons Accepter et Refuser
+            const acceptCookiesButton = document.getElementById('accept-cookies');
+            const declineCookiesButton = document.getElementById('decline-cookies');
+
+            acceptCookiesButton.addEventListener('click', () => {
+                localStorage.setItem('cookiesAccepted', 'true'); // Enregistrer le consentement
+                consentModal.style.display = 'none'; // Masquer la popup
+            });
+
+            declineCookiesButton.addEventListener('click', () => {
+                localStorage.setItem('cookiesAccepted', 'false'); // Enregistrer le refus
+                consentModal.style.display = 'none'; // Masquer la popup
+            });
+        }
+
+        // Function to check if the Hyper Boost can be activated
+        function canActivateHyperBoost() {
+            return hamburgers >= hyperBoostCost;
+        }
+
+        // Function to play the purchase sound
+        function playPurchaseSound() {
+            purchaseSound.currentTime = 0;
+            purchaseSound.play().catch(error => {
+                console.error('Sound playback failed:', error);
+            });
+        }
+
+        function playClickUpgradeSound() {
+            clickUpgradeSound.currentTime = 0;
+            clickUpgradeSound.play().catch(error => {
+                console.error('Sound playback failed:', error);
+            });
+        }
+
+        function playUpgradeSound() {
+            upgradeSound.currentTime = 0;
+            upgradeSound.play().catch(error => {
+                console.error('Sound playback failed:', error);
+            });
+        }
+
+        function playRepairSound() {
+            repairSound.currentTime = 0;
+            repairSound.play().catch(error => {
+                console.error('Sound playback failed:', error);
+            });
+        }
+
+        function playBonusSound() {
+            bonusSound.currentTime = 0;
+            bonusSound.play().catch(error => {
+                console.error('Sound playback failed:', error);
+            });
+        }
+
+        function createFallingBurger() {
+            const fallingBurger = document.createElement('div');
+            fallingBurger.className = 'falling-burger';
+            document.body.appendChild(fallingBurger);
+
+            // Position it randomly on the horizontal axis
+            const randomX = Math.random() * (window.innerWidth - 128);
+            fallingBurger.style.left = `${randomX}px`;
+
+            fallingBurger.addEventListener('click', () => {
+                hamburgers *= 4; // Apply 400% bonus
+                updateDisplay();
+                playBonusSound();
+                fallingBurger.remove();
+            });
+
+            // Remove the burger after the animation ends
+            fallingBurger.addEventListener('animationend', () => {
+                fallingBurger.remove();
+            });
+        }
+
+        setInterval(createFallingBurger, 30000); // Create a falling burger every 30 seconds
+
+        function isMobile() {
+            return window.innerWidth < 768;
+        }
+
+        function saveGameState() {
+            if (!cookiesAccepted) return;
+
+            // Existing game state save logic
+            const gameState = {
+                hamburgers,
+                cookiePerClick,
+                clickUpgradeCost,
+                factoryCost,
+                mineCost,
+                laboratoryCost,
+                factories,
+                mines,
+                laboratories,
+                hyperBoostCost,
+                totalBurgersProduced,
+                clickCount,
+                clickUpgradeLevel,
+                buildingIdCounter
+            };
+            localStorage.setItem('cookieGameSave', JSON.stringify(gameState));
+        }
+
+
+        function loadGameState() {
+            const savedState = localStorage.getItem('cookieGameSave');
+            if (savedState) {
+                const gameState = JSON.parse(savedState);
+                hamburgers = gameState.hamburgers || 0;
+                cookiePerClick = gameState.cookiePerClick || 1;
+                clickUpgradeCost = gameState.clickUpgradeCost || 50;
+                factoryCost = gameState.factoryCost || 100;
+                mineCost = gameState.mineCost || 4000;
+                laboratoryCost = gameState.laboratoryCost || 10000;
+                factories = gameState.factories || [];
+                mines = gameState.mines || [];
+                laboratories = gameState.laboratories || [];
+                hyperBoostCost = gameState.hyperBoostCost || 10000;
+                totalBurgersProduced = gameState.totalBurgersProduced || 0;
+                clickCount = gameState.clickCount || 0;
+                clickUpgradeLevel = gameState.clickUpgradeLevel || 0;
+                buildingIdCounter = gameState.buildingIdCounter || 0;
+
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            cookieCountElement.textContent = Math.ceil(hamburgers);
+            cookiePerClickElement.textContent = Math.ceil(cookiePerClick);
+            clickUpgradeCostElement.textContent = Math.ceil(clickUpgradeCost);
+            factoryCostDisplay.textContent = Math.ceil(factoryCost);
+            mineCostDisplay.textContent = Math.ceil(mineCost);
+            laboratoryCostDisplay.textContent = Math.ceil(laboratoryCost);
+
+            document.getElementById('click-count').textContent = Math.ceil(clickCount);
+            document.getElementById('total-burgers').textContent = Math.ceil(totalBurgersProduced);
+            document.getElementById('factory-production-per-second').textContent = Math.ceil(totalFactoryProductionPerSecond);
+            document.getElementById('mine-production-per-second').textContent = Math.ceil(totalMineProductionPerSecond);
+
+            if (document.getElementById('click-upgrade-level')) {
+                document.getElementById('click-upgrade-level').textContent = clickUpgradeLevel;
+            }
+
+            // Mise à jour des usines
+            factories.forEach(factory => {
+                const id = factory.id;
+                let factoryElement = document.querySelector(`#factory-column .factory-item[data-id='${id}']`);
+                if (!factoryElement) {
+                    factoryElement = document.createElement('div');
+                    factoryElement.className = 'factory-item';
+                    factoryElement.setAttribute('data-id', id);
+                    factoryElement.innerHTML = `
+                        <div class="zone-update">
+                            <div class="zone-update-cost">
+                                <img src="img/player.png" width="32" class="update-picto" /> <span class="upgrade-cost">${Math.ceil(factory.upgradeCost)}</span> <img src="img/burger.png" width="32"/>
+                            </div>
+                            <div class="zone-repair-cost">
+                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(factory.repairCost)}</span>  <img src="img/settings.png" width="32"/> 
+                            </div>
+                        </div>    
+                        <div class="progress-container">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <div class="info-container">
+                            <p>Niveau : <span class="level">${Math.ceil(factory.level)}</span></p>
+                            <p>Production : <span class="production">${Math.ceil(safeValue(factory.production))}</span> (hamburgers/s)</p>
+                        </div>
+                    `;
+                    document.getElementById('factory-column').appendChild(factoryElement);
+
+                    const upgradeBtn = factoryElement.querySelector('.zone-update-cost');
+                    upgradeBtn.addEventListener('click', () => upgradeFactory(factories.findIndex(f => f.id === id)));
+
+                    const repairBtn = factoryElement.querySelector('.zone-repair-cost');
+                    repairBtn.addEventListener('click', () => repairBuilding('factory', factories.findIndex(f => f.id === id)));
+                } else {
+                    factoryElement.querySelector('.level').textContent = Math.ceil(factory.level);
+                    factoryElement.querySelector('.production').textContent = Math.ceil(safeValue(factory.production));
+                    factoryElement.querySelector('.upgrade-cost').textContent = Math.ceil(factory.upgradeCost);
+                    factoryElement.querySelector('.repair-cost').textContent = Math.ceil(factory.repairCost);
+                }
+            });
+
+            // Mise à jour des mines
+            mines.forEach(mine => {
+                const id = mine.id;
+                let mineElement = document.querySelector(`#mine-column .mine-item[data-id='${id}']`);
+                if (!mineElement) {
+                    mineElement = document.createElement('div');
+                    mineElement.className = 'mine-item';
+                    mineElement.setAttribute('data-id', id);
+                    mineElement.innerHTML = `
+                        <div class="zone-update">
+                            <div class="zone-update-cost">
+                                <img src="img/player.png" width="32" class="update-picto" /> <span class="upgrade-cost">${Math.ceil(mine.upgradeCost)}</span> <img src="img/burger.png" width="32"/>
+                            </div>
+                            <div class="zone-repair-cost">
+                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(mine.repairCost)}</span> <img src="img/settings.png" width="32"/> 
+                            </div>
+                        </div>   
+                        <div class="progress-container">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <div class="info-container">
+                            <p>Niveau : <span class="level">${Math.ceil(mine.level)}</span></p>
+                            <p>Production : <span class="production">${Math.ceil(safeValue(mine.production))}</span> (hamburgers/s)</p>
+                        </div>
+                    `;
+                    document.getElementById('mine-column').appendChild(mineElement);
+
+                    const upgradeBtn = mineElement.querySelector('.zone-update-cost');
+                    upgradeBtn.addEventListener('click', () => upgradeMine(mines.findIndex(m => m.id === id)));
+
+                    const repairBtn = mineElement.querySelector('.zone-repair-cost');
+                    repairBtn.addEventListener('click', () => repairBuilding('mine', mines.findIndex(m => m.id === id)));
+                } else {
+                    mineElement.querySelector('.level').textContent = Math.ceil(mine.level);
+                    mineElement.querySelector('.production').textContent = Math.ceil(safeValue(mine.production));
+                    mineElement.querySelector('.upgrade-cost').textContent = Math.ceil(mine.upgradeCost);
+                    mineElement.querySelector('.repair-cost').textContent = Math.ceil(mine.repairCost);
+                }
+            });
+
+            // Mise à jour des laboratoires
+            laboratories.forEach(lab => {
+                const id = lab.id;
+                let labElement = document.querySelector(`#laboratory-column .laboratory-item[data-id='${id}']`);
+                if (!labElement) {
+                    labElement = document.createElement('div');
+                    labElement.className = 'laboratory-item';
+                    labElement.setAttribute('data-id', id);
+                    labElement.innerHTML = `
+                        <div class="zone-update">
+                            <div class="zone-update-cost">
+                                <img src="img/player.png" width="32" class="update-picto" /> <span class="upgrade-cost">${Math.ceil(lab.upgradeCost)}</span> <img src="img/burger.png" width="32"/>
+                            </div>
+                            <div class="zone-repair-cost">
+                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(lab.repairCost)}</span> <img src="img/settings.png" width="32"/> 
+                            </div>
+                        </div>   
+                        <div class="progress-container">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <div class="info-container">
+                            <p>Niveau : <span class="level">${Math.ceil(lab.level)}</span></p>
+                            <p>Augmente la production de tous les bâtiments de <span class="bonus">${Math.ceil(10 * lab.level)}</span>%</p>
+                        </div>
+                    `;
+                    document.getElementById('laboratory-column').appendChild(labElement);
+
+                    const upgradeBtn = labElement.querySelector('.zone-update-cost');
+                    upgradeBtn.addEventListener('click', () => upgradeLaboratory(laboratories.findIndex(l => l.id === id)));
+
+                    const repairBtn = labElement.querySelector('.zone-repair-cost');
+                    repairBtn.addEventListener('click', () => repairBuilding('laboratory', laboratories.findIndex(l => l.id === id)));
+                } else {
+                    labElement.querySelector('.level').textContent = Math.ceil(lab.level);
+                    labElement.querySelector('.bonus').textContent = Math.ceil(10 * lab.level);
+                    labElement.querySelector('.upgrade-cost').textContent = Math.ceil(lab.upgradeCost);
+                    labElement.querySelector('.repair-cost').textContent = Math.ceil(lab.repairCost);
+                }
+            });
+
+            // Mise à jour du statut de l'Hyper Boost
+            hyperBoostBtn.disabled = !canActivateHyperBoost();
+
+            if (isHyperBoostActive) {
+                const remainingTime = Math.max(0, Math.ceil((boostEndTime - Date.now()) / 1000));
+                boostTimerElement.textContent = `Hyper Boost actif ! Temps restant : ${remainingTime} secondes`;
+            } else {
+                boostTimerElement.textContent = "";
+            }
+        }
+
+        function activateHyperBoost() {
+            if (hamburgers >= hyperBoostCost) {
+                hamburgers -= hyperBoostCost;
+                isHyperBoostActive = true;
+                boostEndTime = Date.now() + hyperBoostDuration;
+
+                hyperBoostCost *= 4;
+                updateDisplay();
+                
+                playBonusSound();
+
+                const fireworksInterval = setInterval(() => {
+                    if (isHyperBoostActive) {
+                        createFireworks();
+                    } else {
+                        clearInterval(fireworksInterval);
+                    }
+                }, 1000);
+
+                setTimeout(() => {
+                    isHyperBoostActive = false;
+                    boostTimerElement.textContent = "";
+                    updateDisplay();
+                }, hyperBoostDuration);
+            } else {
+                alert("Pas assez de hamburgers pour activer l'Hyper Boost !");
+            }
+        }
+
+        mainBurgerImage.addEventListener('click', () => {
+            hamburgers += cookiePerClick;
+            clickCount += 1;
+            totalBurgersProduced += cookiePerClick;
+            const numberOfBurgers = Math.min(Math.ceil(cookiePerClick), 100);
+            createFlyingBurger(numberOfBurgers);
+            updateDisplay();
+            playClickUpgradeSound();
+        });
+
+        function upgradeFactory(index) {
+            const factory = factories[index];
+            if (hamburgers >= factory.upgradeCost) {
+                hamburgers -= factory.upgradeCost;
+                factory.level += 1;
+                factory.production *= 1.5;
+                factory.durability = 100;
+                factory.upgradeCost = Math.ceil(factory.upgradeCost * 1.2);
+                recalculateRepairCost(factory);
+                updateDisplay();
+                saveGameState();
+                playUpgradeSound();
+            } else {
+                alert("Pas assez de hamburgers pour améliorer cette usine !");
+            }
+        }
+
+        function upgradeMine(index) {
+            const mine = mines[index];
+            if (hamburgers >= mine.upgradeCost) {
+                hamburgers -= mine.upgradeCost;
+                mine.level += 1;
+                mine.production *= 1.5;
+                mine.durability = 100;
+                mine.upgradeCost = Math.ceil(mine.upgradeCost * 1.4);
+                recalculateRepairCost(mine);
+                updateDisplay();
+                saveGameState();
+                playUpgradeSound();
+            } else {
+                alert("Pas assez de hamburgers pour améliorer cette mine !");
+            }
+        }
+
+        function upgradeLaboratory(index) {
+            const laboratory = laboratories[index];
+            if (hamburgers >= laboratory.upgradeCost) {
+                hamburgers -= laboratory.upgradeCost;
+                laboratory.level += 1;
+                laboratory.durability = 100;
+                laboratory.upgradeCost = Math.ceil(laboratory.upgradeCost * 1.8);
+                recalculateRepairCost(laboratory);
+                updateDisplay();
+                saveGameState();
+                playUpgradeSound();
+            } else {
+                alert("Pas assez de hamburgers pour améliorer ce laboratoire !");
+            }
+        }
+
+        function recalculateRepairCost(building) {
+            building.repairCost = Math.ceil(building.upgradeCost * 0.15);
+        }
+
+        function repairBuilding(type, index) {
+            let building;
+            if (type === 'factory') {
+                building = factories[index];
+            } else if (type === 'mine') {
+                building = mines[index];
+            } else if (type === 'laboratory') {
+                building = laboratories[index];
+            }
+
+            if (hamburgers >= building.repairCost) {
+                hamburgers -= building.repairCost;
+                building.durability = 100;
+                recalculateRepairCost(building);
+                updateDisplay();
+                saveGameState();
+                playRepairSound();
+            } else {
+                alert("Pas assez de hamburgers pour réparer !");
+            }
+        }
+
+        function createFlyingBurger(count = 1) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    const burgerElement = document.createElement('div');
+                    burgerElement.className = 'fly-burger';
+                    document.body.appendChild(burgerElement);
+
+                    const img = document.querySelector('.fit-picture');
+                    if (img) {
+                        const { top, left, width, height } = img.getBoundingClientRect();
+
+                        const randomX = left + Math.random() * width - 10;
+                        const randomY = top - 30 + Math.random() * (height + 60);
+
+                        burgerElement.style.left = `${randomX}px`;
+                        burgerElement.style.top = `${randomY}px`;
+
+                        burgerElement.addEventListener('animationend', () => {
+                            burgerElement.remove();
+                        });
+                    }
+                }, i * 20);
+            }
+        }
+
+        function safeValue(value) {
+            return isNaN(value) ? 0 : value;
+        }
+
+        function createFireworks() {
+            const fireworkCount = 20;
+            const colors = ['red', 'blue', 'green', 'yellow', 'orange', 'pink', 'purple', 'cyan'];
+
+            const img = document.querySelector('.fit-picture');
+            const { top, left, width } = img.getBoundingClientRect();
+            const centerX = left + width / 2;
+
+            for (let i = 0; i < fireworkCount; i++) {
+                setTimeout(() => {
+                    const fireworkElement = document.createElement('div');
+                    fireworkElement.className = 'firework';
+                    fireworkElement.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    fireworkElement.style.width = `${Math.random() * 10 + 10}px`;
+                    fireworkElement.style.height = fireworkElement.style.width;
+
+                    document.body.appendChild(fireworkElement);
+
+                    const angle = Math.random() * 2 * Math.PI;
+                    const distance = Math.random() * 100 + 50;
+                    const x = centerX + distance * Math.cos(angle);
+                    const y = top + distance * Math.sin(angle);
+
+                    fireworkElement.style.left = `${x}px`;
+                    fireworkElement.style.top = `${y}px`;
+
+                    fireworkElement.addEventListener('animationend', () => {
+                        fireworkElement.remove();
+                    });
+                }, i * 80);
+            }
+        }
+
+        function updateProgressBars() {
+            const updateProgress = (durability, elementBaseSelector) => {
+                const progressElement = elementBaseSelector.querySelector('.progress-bar');
+                const widthPercent = (durability / 100) * 100;
+
+                let backgroundColor;
+                if (durability > 75) {
+                    backgroundColor = 'green';
+                } else if (durability > 50) {
+                    backgroundColor = 'yellow';
+                } else if (durability > 25) {
+                    backgroundColor = 'orange';
+                } else {
+                    backgroundColor = 'red';
+                }
+
+                progressElement.style.width = `${widthPercent}%`;
+                progressElement.style.backgroundColor = backgroundColor;
+            };
+
+            factories.forEach(factory => {
+                const elementSelector = document.querySelector(`#factory-column .factory-item[data-id='${factory.id}'] .progress-container`);
+                if (elementSelector) {
+                    updateProgress(factory.durability, elementSelector);
+                }
+            });
+
+            mines.forEach(mine => {
+                const elementSelector = document.querySelector(`#mine-column .mine-item[data-id='${mine.id}'] .progress-container`);
+                if (elementSelector) {
+                    updateProgress(mine.durability, elementSelector);
+                }
+            });
+
+            laboratories.forEach(lab => {
+                const elementSelector = document.querySelector(`#laboratory-column .laboratory-item[data-id='${lab.id}'] .progress-container`);
+                if (elementSelector) {
+                    updateProgress(lab.durability, elementSelector);
+                }
+            });
+        }
+
+        // Event listeners
+        musicControlIcon.addEventListener('click', () => {
+            if (backgroundMusic.paused) {
+                backgroundMusic.play().then(() => {
+                    musicControlIcon.classList.remove('music-muted');
+                }).catch(error => {
+                    console.error('Playback error:', error);
+                });
+            } else {
+                backgroundMusic.pause();
+                musicControlIcon.classList.add('music-muted');
+            }
+        });
+
+        window.addEventListener('load', function() {
+            askForCookiesConsent();
+            if (cookiesAccepted) {
+                loadGameState();
+            }
+
+            if (!isMobile()) {
+                shopPanel.classList.add('open');
+                arrowShop.classList.add('open');
+            }
+
+            console.log("Veuillez cliquer n'importe où pour démarrer la musique.");
+        });
+
+        document.body.addEventListener('click', function playMusicOnUserInteraction() {
+            musicControlIcon.click();
+            document.body.removeEventListener('click', playMusicOnUserInteraction);
+        });
+
+        cookieBtn.addEventListener('click', () => {
+            hamburgers += cookiePerClick;
+            clickCount += 1;
+            totalBurgersProduced += cookiePerClick;
+            const numberOfBurgers = Math.min(Math.ceil(cookiePerClick), 100);
+            createFlyingBurger(numberOfBurgers);
+            updateDisplay();
+        });
+
+        upgradeClickBtn.addEventListener('click', () => {
+            if (hamburgers >= clickUpgradeCost) {
+                hamburgers -= clickUpgradeCost;
+                clickUpgradeLevel += 1;
+                cookiePerClick = Math.ceil(cookiePerClick * 1.15);
+                clickUpgradeCost = Math.ceil(clickUpgradeCost * 1.15);
+                updateDisplay();
+                playClickUpgradeSound();
+            } else {
+                alert("Pas assez de hamburgers pour améliorer le clic !");
+            }
+        });
+
+        buyFactoryBtn.addEventListener('click', () => {
+            if (hamburgers >= factoryCost) {
+                hamburgers -= factoryCost;
+                factories.push({
+                    id: buildingIdCounter++,
+                    level: 1,
+                    production: baseFactoryProduction,
+                    upgradeCost: 500,
+                    durability: 100,
+                    repairCost: 50
+                });
+                factoryCost = Math.ceil(factoryCost * 1.1);
+                updateDisplay();
+                saveGameState();
+                playPurchaseSound();
+            } else {
+                alert("Pas assez de hamburgers !");
+            }
+        });
+
+        buyMineBtn.addEventListener('click', () => {
+            if (hamburgers >= mineCost) {
+                hamburgers -= mineCost;
+                mines.push({
+                    id: buildingIdCounter++,
+                    level: 1,
+                    production: baseMineProduction,
+                    upgradeCost: 1000,
+                    durability: 100,
+                    repairCost: 100
+                });
+                mineCost = Math.ceil(mineCost * 1.1);
+                updateDisplay();
+                saveGameState();
+                playPurchaseSound();
+            } else {
+                alert("Pas assez de hamburgers !");
+            }
+        });
+
+        buyLaboratoryBtn.addEventListener('click', () => {
+            if (hamburgers >= laboratoryCost) {
+                hamburgers -= laboratoryCost;
+                laboratories.push({
+                    id: buildingIdCounter++,
+                    level: 1,
+                    durability: 100,
+                    repairCost: 225,
+                    upgradeCost: 1500
+                });
+                laboratoryCost = Math.ceil(laboratoryCost * 1.1);
+                updateDisplay();
+                saveGameState();
+                playPurchaseSound();
+            } else {
+                alert("Pas assez de hamburgers !");
+            }
+        });
+
+        hyperBoostBtn.addEventListener('click', () => {
+            activateHyperBoost();
+            saveGameState();
+        });
+
+        arrowShop.addEventListener('click', function() {
+            shopPanel.classList.toggle('open');
+            arrowShop.classList.toggle('open');
+
+            if (isMobile() && shopPanel.classList.contains('open')) {
+                statsPanel.classList.remove('open');
+                arrowStats.classList.remove('open');
+            }
+        });
+
+        arrowStats.addEventListener('click', function() {
+            statsPanel.classList.toggle('open');
+            arrowStats.classList.toggle('open');
+
+            if (isMobile() && statsPanel.classList.contains('open')) {
+                shopPanel.classList.remove('open');
+                arrowShop.classList.remove('open');
+            }
+        });
+
+        window.addEventListener('resize', function() {
+            if (!isMobile()) {
+                shopPanel.classList.add('open');
+                arrowShop.classList.add('open');
+            } else {
+                shopPanel.classList.remove('open');
+                arrowShop.classList.remove('open');
+            }
+        });
+
+        document.getElementById('debug-add-hamburgers').addEventListener('click', () => {
+            hamburgers += 10000000000000000;
+            updateDisplay();
+        });
+
+        document.getElementById('debug-add-factory').addEventListener('click', () => {
+            factories.push({
+                id: buildingIdCounter++,
+                level: 1,
+                production: baseFactoryProduction,
+                upgradeCost: 500,
+                durability: 100,
+                repairCost: 50
+            });
+            updateDisplay();
+        });
+
+        setInterval(() => {
+            let totalProduction = 0;
+            let totalProducedByFactories = 0;
+            let totalProducedByMines = 0;
+
+            factories.forEach(factory => {
+                factory.durability = Math.max(0, factory.durability - durabilityReductionPerSecond);
+                const production = baseFactoryProduction * factory.level * (factory.durability / 100);
+                factory.production = production;
+                totalProducedByFactories += production;
+                totalProduction += production;
+            });
+
+            mines.forEach(mine => {
+                mine.durability = Math.max(0, mine.durability - durabilityReductionPerSecond);
+                const production = baseMineProduction * mine.level * (mine.durability / 100);
+                mine.production = production;
+                totalProducedByMines += production;
+                totalProduction += production;
+            });
+
+            laboratories.forEach(lab => {
+                lab.durability = Math.max(0, lab.durability - durabilityReductionPerSecond);
+            });
+
+            const labBoost = laboratories.reduce((boost, lab) => boost * Math.pow(1.1, lab.level), 1);
+            totalProduction *= labBoost;
+            totalProducedByFactories *= labBoost;
+            totalProducedByMines *= labBoost;
+
+            if (isHyperBoostActive) {
+                totalProduction *= hyperBoostMultiplier;
+                totalProducedByFactories *= hyperBoostMultiplier;
+                totalProducedByMines *= hyperBoostMultiplier;
+
+                const remainingTime = Math.max(0, Math.ceil((boostEndTime - Date.now()) / 1000));
+                boostTimerElement.textContent = `Hyper Boost actif ! Temps restant : ${remainingTime} secondes`;
+            }
+
+            totalFactoryProductionPerSecond = totalProducedByFactories;
+            totalMineProductionPerSecond = totalProducedByMines;
+
+            hamburgers += totalProduction;
+            totalBurgersProduced += totalProduction;
+            updateDisplay();
+
+            if (totalProducedByFactories > 0) {
+                createFlyingBurger(Math.min(Math.ceil(totalProducedByFactories), 100));
+            }
+            if (totalProducedByMines > 0) {
+                createFlyingBurger(Math.min(Math.ceil(totalProducedByMines), 100));
+            }
+
+            updateProgressBars();
+        }, 1000);
+
+        setInterval(saveGameState, 10000);
+    </script>
+</body>
+
+</html>

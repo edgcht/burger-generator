@@ -1,0 +1,36 @@
+{
+    "name": "Burger Generator",
+    "short_name": "BurgerGen",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0000ff",
+    "theme_color": "#0000ff",
+    "description": "Un jeu de génération de hamburgers avec bâtiments et améliorations.",
+    "icons": [
+      {
+        "src": "img/burger.png",
+        "sizes": "512x511",
+        "type": "image/png"
+      },
+      {
+        "src": "img/couronne.png",
+        "sizes": "64x64",
+        "type": "image/png"
+      },
+      {
+        "src": "img/game.png",
+        "sizes": "64x64",
+        "type": "image/png"
+      },
+      {
+        "src": "img/player.png",
+        "sizes": "64x64",
+        "type": "image/png"
+      },
+      {
+        "src": "img/settings.png",
+        "sizes": "64x64",
+        "type": "image/png"
+      }
+    ]
+  }
