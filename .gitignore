@@ -1,0 +1,6 @@
+# Ignorer le fichier ads.txt
+ads.txt
+
+# Ignorer les dossiers et fichiers communs
+node_modules/
+.DS_Store
