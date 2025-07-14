@@ -1671,6 +1671,19 @@
 
         setInterval(saveGameState, 10000);
         window.addEventListener('beforeunload', saveGameState);
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveGameState();
+            } else if (document.visibilityState === 'visible') {
+                const elapsed = Math.floor((Date.now() - lastSaveTime) / 1000);
+                if (elapsed > 0) {
+                    computeOfflineProgress(elapsed);
+                    updateDisplay();
+                    saveGameState();
+                }
+            }
+        });
     </script>
 </body>
 
