@@ -1022,7 +1022,9 @@
         function saveGameState() {
             if (!cookiesAccepted) return;
 
-            // Existing game state save logic
+            // Mette à jour le timestamp avant de sauvegarder
+            lastSaveTime = Date.now();
+
             const gameState = {
                 hamburgers,
                 cookiePerClick,
@@ -1040,7 +1042,7 @@
                 clickCount,
                 clickUpgradeLevel,
                 buildingIdCounter,
-                lastSaveTime: Date.now()
+                lastSaveTime
             };
             localStorage.setItem('cookieGameSave', JSON.stringify(gameState));
         }
@@ -1670,10 +1672,14 @@
         }, 1000);
 
         setInterval(saveGameState, 10000);
-        window.addEventListener('beforeunload', saveGameState);
+        window.addEventListener('beforeunload', () => {
+            lastSaveTime = Date.now();
+            saveGameState();
+        });
 
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
+                lastSaveTime = Date.now();
                 saveGameState();
             } else if (document.visibilityState === 'visible') {
                 const elapsed = Math.floor((Date.now() - lastSaveTime) / 1000);
