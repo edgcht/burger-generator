@@ -1672,6 +1672,7 @@
         }, 1000);
 
         setInterval(saveGameState, 10000);
+
         window.addEventListener('beforeunload', () => {
             lastSaveTime = Date.now();
             saveGameState();
