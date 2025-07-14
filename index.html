@@ -101,6 +101,50 @@
             }
         }
 
+        function computeOfflineProgress(seconds) {
+            if (seconds <= 0) return;
+
+            const r = durabilityReductionPerSecond;
+            const labBoost = laboratories.reduce((b, lab) => b * Math.pow(1.1, lab.level), 1);
+
+            let hyperDuration = 0;
+            if (isHyperBoostActive && boostEndTime > lastSaveTime) {
+                hyperDuration = Math.min(seconds, Math.ceil((boostEndTime - lastSaveTime) / 1000));
+            }
+            const normalDuration = seconds - hyperDuration;
+
+            const computeProduction = (list, base, duration, multiplier) => {
+                let total = 0;
+                list.forEach(item => {
+                    const d0 = item.durability;
+                    const tEff = Math.min(duration, d0 / r);
+                    total += base * item.level * ((d0 * tEff) - (r * tEff * tEff / 2)) / 100 * multiplier;
+                    item.durability = Math.max(0, d0 - r * duration);
+                });
+                return total;
+            };
+
+            let produced = 0;
+            if (hyperDuration > 0) {
+                produced += computeProduction(factories, baseFactoryProduction, hyperDuration, labBoost * hyperBoostMultiplier);
+                produced += computeProduction(mines, baseMineProduction, hyperDuration, labBoost * hyperBoostMultiplier);
+                laboratories.forEach(lab => { lab.durability = Math.max(0, lab.durability - r * hyperDuration); });
+            }
+
+            if (normalDuration > 0) {
+                produced += computeProduction(factories, baseFactoryProduction, normalDuration, labBoost);
+                produced += computeProduction(mines, baseMineProduction, normalDuration, labBoost);
+                laboratories.forEach(lab => { lab.durability = Math.max(0, lab.durability - r * normalDuration); });
+            }
+
+            hamburgers += produced;
+            totalBurgersProduced += produced;
+            if (boostEndTime <= Date.now()) {
+                isHyperBoostActive = false;
+            }
+            lastSaveTime = Date.now();
+        }
+
         /* Effets de feux d'artifice */
         .firework {
             position: absolute;
@@ -795,6 +839,7 @@
         let totalMineProductionPerSecond = 0;
         let clickUpgradeLevel = 0; // Niveau d'amélioration du clic
         let buildingIdCounter = 0; // Compteur pour les identifiants uniques des bâtiments
+        let lastSaveTime = Date.now(); // Timestamp pour calcul du temps écoulé
         let cookiesAccepted = false;
 
         // Sélectionner les éléments du DOM
@@ -978,10 +1023,13 @@
                 mines,
                 laboratories,
                 hyperBoostCost,
+                isHyperBoostActive,
+                boostEndTime,
                 totalBurgersProduced,
                 clickCount,
                 clickUpgradeLevel,
-                buildingIdCounter
+                buildingIdCounter,
+                lastSaveTime: Date.now()
             };
             localStorage.setItem('cookieGameSave', JSON.stringify(gameState));
         }
@@ -1001,10 +1049,18 @@
                 mines = gameState.mines || [];
                 laboratories = gameState.laboratories || [];
                 hyperBoostCost = gameState.hyperBoostCost || 10000;
+                isHyperBoostActive = gameState.isHyperBoostActive || false;
+                boostEndTime = gameState.boostEndTime || 0;
                 totalBurgersProduced = gameState.totalBurgersProduced || 0;
                 clickCount = gameState.clickCount || 0;
                 clickUpgradeLevel = gameState.clickUpgradeLevel || 0;
                 buildingIdCounter = gameState.buildingIdCounter || 0;
+                lastSaveTime = gameState.lastSaveTime || Date.now();
+
+                const elapsed = Math.floor((Date.now() - lastSaveTime) / 1000);
+                if (elapsed > 0) {
+                    computeOfflineProgress(elapsed);
+                }
 
                 updateDisplay();
             }
@@ -1030,20 +1086,20 @@
             // Mise à jour des usines
             factories.forEach(factory => {
                 const id = factory.id;
-                let factoryElement = document.querySelector(`#factory-column .factory-item[data-id='${id}']`);
+                let factoryElement = factory.element;
                 if (!factoryElement) {
                     factoryElement = document.createElement('div');
                     factoryElement.className = 'factory-item';
-                    factoryElement.setAttribute('data-id', id);
+                    factoryElement.setAttribute('data-id', factory.id);
                     factoryElement.innerHTML = `
                         <div class="zone-update">
                             <div class="zone-update-cost">
                                 <img src="img/player.png" width="32" class="update-picto" /> <span class="upgrade-cost">${Math.ceil(factory.upgradeCost)}</span> <img src="img/burger.png" width="32"/>
                             </div>
                             <div class="zone-repair-cost">
-                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(factory.repairCost)}</span>  <img src="img/settings.png" width="32"/> 
+                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(factory.repairCost)}</span>  <img src="img/settings.png" width="32"/>
                             </div>
-                        </div>    
+                        </div>
                         <div class="progress-container">
                             <div class="progress-bar"></div>
                         </div>
@@ -1053,6 +1109,7 @@
                         </div>
                     `;
                     document.getElementById('factory-column').appendChild(factoryElement);
+                    factory.element = factoryElement;
 
                     const upgradeBtn = factoryElement.querySelector('.zone-update-cost');
                     upgradeBtn.addEventListener('click', () => upgradeFactory(factories.findIndex(f => f.id === id)));
@@ -1070,20 +1127,20 @@
             // Mise à jour des mines
             mines.forEach(mine => {
                 const id = mine.id;
-                let mineElement = document.querySelector(`#mine-column .mine-item[data-id='${id}']`);
+                let mineElement = mine.element;
                 if (!mineElement) {
                     mineElement = document.createElement('div');
                     mineElement.className = 'mine-item';
-                    mineElement.setAttribute('data-id', id);
+                    mineElement.setAttribute('data-id', mine.id);
                     mineElement.innerHTML = `
                         <div class="zone-update">
                             <div class="zone-update-cost">
                                 <img src="img/player.png" width="32" class="update-picto" /> <span class="upgrade-cost">${Math.ceil(mine.upgradeCost)}</span> <img src="img/burger.png" width="32"/>
                             </div>
                             <div class="zone-repair-cost">
-                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(mine.repairCost)}</span> <img src="img/settings.png" width="32"/> 
+                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(mine.repairCost)}</span> <img src="img/settings.png" width="32"/>
                             </div>
-                        </div>   
+                        </div>
                         <div class="progress-container">
                             <div class="progress-bar"></div>
                         </div>
@@ -1093,6 +1150,7 @@
                         </div>
                     `;
                     document.getElementById('mine-column').appendChild(mineElement);
+                    mine.element = mineElement;
 
                     const upgradeBtn = mineElement.querySelector('.zone-update-cost');
                     upgradeBtn.addEventListener('click', () => upgradeMine(mines.findIndex(m => m.id === id)));
@@ -1110,20 +1168,20 @@
             // Mise à jour des laboratoires
             laboratories.forEach(lab => {
                 const id = lab.id;
-                let labElement = document.querySelector(`#laboratory-column .laboratory-item[data-id='${id}']`);
+                let labElement = lab.element;
                 if (!labElement) {
                     labElement = document.createElement('div');
                     labElement.className = 'laboratory-item';
-                    labElement.setAttribute('data-id', id);
+                    labElement.setAttribute('data-id', lab.id);
                     labElement.innerHTML = `
                         <div class="zone-update">
                             <div class="zone-update-cost">
                                 <img src="img/player.png" width="32" class="update-picto" /> <span class="upgrade-cost">${Math.ceil(lab.upgradeCost)}</span> <img src="img/burger.png" width="32"/>
                             </div>
                             <div class="zone-repair-cost">
-                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(lab.repairCost)}</span> <img src="img/settings.png" width="32"/> 
+                                <img src="img/burger.png" width="32"/> <span class="repair-cost">${Math.ceil(lab.repairCost)}</span> <img src="img/settings.png" width="32"/>
                             </div>
-                        </div>   
+                        </div>
                         <div class="progress-container">
                             <div class="progress-bar"></div>
                         </div>
@@ -1133,6 +1191,7 @@
                         </div>
                     `;
                     document.getElementById('laboratory-column').appendChild(labElement);
+                    lab.element = labElement;
 
                     const upgradeBtn = labElement.querySelector('.zone-update-cost');
                     upgradeBtn.addEventListener('click', () => upgradeLaboratory(laboratories.findIndex(l => l.id === id)));
@@ -1356,21 +1415,21 @@
             };
 
             factories.forEach(factory => {
-                const elementSelector = document.querySelector(`#factory-column .factory-item[data-id='${factory.id}'] .progress-container`);
+                const elementSelector = factory.element ? factory.element.querySelector('.progress-container') : null;
                 if (elementSelector) {
                     updateProgress(factory.durability, elementSelector);
                 }
             });
 
             mines.forEach(mine => {
-                const elementSelector = document.querySelector(`#mine-column .mine-item[data-id='${mine.id}'] .progress-container`);
+                const elementSelector = mine.element ? mine.element.querySelector('.progress-container') : null;
                 if (elementSelector) {
                     updateProgress(mine.durability, elementSelector);
                 }
             });
 
             laboratories.forEach(lab => {
-                const elementSelector = document.querySelector(`#laboratory-column .laboratory-item[data-id='${lab.id}'] .progress-container`);
+                const elementSelector = lab.element ? lab.element.querySelector('.progress-container') : null;
                 if (elementSelector) {
                     updateProgress(lab.durability, elementSelector);
                 }
@@ -1600,6 +1659,7 @@
         }, 1000);
 
         setInterval(saveGameState, 10000);
+        window.addEventListener('beforeunload', saveGameState);
     </script>
 </body>
 
