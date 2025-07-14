@@ -891,13 +891,14 @@
             const declineCookiesButton = document.getElementById('decline-cookies');
 
             // Vérifier si l'utilisateur a déjà donné son consentement
-            const cookiesAccepted = localStorage.getItem('cookiesAccepted');
+            const storedConsent = localStorage.getItem('cookiesAccepted');
+            cookiesAccepted = storedConsent === 'true';
 
-            if (cookiesAccepted === 'true') {
+            if (cookiesAccepted) {
                 // Masquer la popin et charger l'état du jeu si les cookies ont été acceptés
                 consentModal.style.display = 'none';
                 loadGameState();
-            } else if (cookiesAccepted === 'false') {
+            } else if (storedConsent === 'false') {
                 // Masquer la popin si l'utilisateur a déjà refusé les cookies
                 consentModal.style.display = 'none';
             } else {
@@ -908,12 +909,14 @@
             // Gestion des boutons Accepter et Refuser
             acceptCookiesButton.addEventListener('click', () => {
                 localStorage.setItem('cookiesAccepted', 'true'); // Enregistrer le consentement
+                cookiesAccepted = true;
                 consentModal.style.display = 'none'; // Masquer la popin
                 loadGameState(); // Charger l'état du jeu si accepté
             });
 
             declineCookiesButton.addEventListener('click', () => {
                 localStorage.setItem('cookiesAccepted', 'false'); // Enregistrer le refus
+                cookiesAccepted = false;
                 consentModal.style.display = 'none'; // Masquer la popin
                 // Ne pas charger l'état du jeu
             });
@@ -921,9 +924,10 @@
 
         function askForCookiesConsent() {
             const consentModal = document.getElementById('cookie-consent-modal');
-            const cookiesAccepted = localStorage.getItem('cookiesAccepted');
+            const storedConsent = localStorage.getItem('cookiesAccepted');
+            cookiesAccepted = storedConsent === 'true';
 
-            if (cookiesAccepted === null) {
+            if (storedConsent === null) {
                 consentModal.style.display = 'block'; // Afficher la popup
             } else {
                 consentModal.style.display = 'none'; // Masquer la popup si déjà accepté/refusé
@@ -935,11 +939,13 @@
 
             acceptCookiesButton.addEventListener('click', () => {
                 localStorage.setItem('cookiesAccepted', 'true'); // Enregistrer le consentement
+                cookiesAccepted = true;
                 consentModal.style.display = 'none'; // Masquer la popup
             });
 
             declineCookiesButton.addEventListener('click', () => {
                 localStorage.setItem('cookiesAccepted', 'false'); // Enregistrer le refus
+                cookiesAccepted = false;
                 consentModal.style.display = 'none'; // Masquer la popup
             });
         }
